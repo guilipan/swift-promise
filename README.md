@@ -2,6 +2,8 @@
 
 ====================
 
+[![Build Status](https://travis-ci.org/guilipan/swift-promise.svg?branch=master)](https://travis-ci.org/guilipan/swift-promise)
+
 一个[Promise A+规范](http://promisesaplus.com/)的实现,promise的介绍,请
 [点击](http://www.html5rocks.com/zh/tutorials/es6/promises/)
 
