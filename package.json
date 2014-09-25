@@ -1,31 +1,33 @@
 {
-    "name": "swift-promise",
-    "version": "0.0.1",
-    "description": "a Promise A+ implementation",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/swift-promise/"
-    },
-    "author": {
-        "name": "guilipan",
-        "email": "guilipan@163.com",
-        "url": "http://shaynegui.com"
-    },
-    "engines": {
-        "node": "*"
-    },
-    "scripts": {
-        "test": "mocha test/test-spec.js"
-    },
-    "keywords": [
-        "promise",
-        "promise A+",
-        "promise Aplus",
-        "deffered"
-    ],
-    "devDependencies": {
-        "mocha": "^1.21.4",
-        "promises-aplus-tests": "^2.1.0"
-    }
+  "name": "swift-promise",
+  "version": "0.0.1",
+  "description": "a Promise A+ implementation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swift-promise/"
+  },
+  "author": {
+    "name": "guilipan",
+    "email": "guilipan@163.com",
+    "url": "http://shaynegui.com"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "scripts": {
+    "test": "mocha test/test-spec.js"
+  },
+  "keywords": [
+    "promise",
+    "promise A+",
+    "promise Aplus",
+    "deffered"
+  ],
+  "devDependencies": {
+    "coveralls": "^2.11.2",
+    "istanbul": "^0.3.2",
+    "mocha": "^1.21.4",
+    "promises-aplus-tests": "^2.1.0"
+  }
 }
