@@ -8,6 +8,8 @@
 一个[Promise A+规范](http://promisesaplus.com/)的实现,promise的介绍,请
 [点击](http://www.html5rocks.com/zh/tutorials/es6/promises/)
 
+[详细的实现原理](http://www.shaynegui.com/promise-aplus-implementation/)
+
 本实现完全遵循Promise A+规范,全部实现[Promise A+测试用例](https://github.com/promises-aplus/promises-tests)
 
 运行`npm test`可看到效果
