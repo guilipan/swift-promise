@@ -25,6 +25,7 @@
     "deffered"
   ],
   "devDependencies": {
+    "chai": "^1.9.2",
     "coveralls": "^2.11.2",
     "istanbul": "^0.3.2",
     "mocha": "^1.21.4",
