@@ -1,3 +1,4 @@
+"use strict";
 
 //定义promise状态
 var State = {
@@ -136,7 +137,7 @@ function resolve(promise, x) {
 
         }
     }
-    else if (x !== null && (typeof x == "object" || typeof x == "function")) {
+    else if (isObjectOrFunction(x)) {
 
         var isCalled = false;//2.3.3.3.3
 
@@ -237,10 +238,135 @@ Promise.prototype = {
     }
 }
 
-if ( typeof module != 'undefined' && module.exports ) {
+//以下静态方法为ES6 Promise新增部分
+Promise.resolve = function (value) {
+
+    //ES6:如果value是有then方法的promise,直接返回
+    if (value !== null && isFunction(value.then)) {
+
+        return value;
+    }
+
+    return new Promise(function (resolve, reject) {
+
+        resolve(value);
+
+    })
+}
+
+Promise.reject = function (reason) {
+
+    return new Promise(function (resolve, reject) {
+
+        reject(reason);
+
+    })
+}
+
+Promise.all = function (promises) {
+
+    if (!isArray(promises)) {
+
+        throw new TypeError('parameters passed into all should be array type');
+
+    }
+
+    return new Promise(function (resolve, reject) {
+        var results = [],
+            promise,
+            remaining = promises.length;
+
+        function thenResolve(index) {
+            return function (value) {
+                resolveAll(index, value);
+            }
+        }
+
+        function resolveAll(index, value) {
+            results[index] = value;
+            if (--remaining == 0) {
+                resolve(results);
+            }
+        }
+
+        for (var i = 0; i < remaining; i++) {
+
+            promise = promises[i];
+
+            if (promise && isFunction(promise.then)) {
+
+                promise.then(thenResolve(i), reject);
+
+            }
+            else {
+                resolveAll(i, promise);
+            }
+        }
+    })
+}
+
+Promise.race = function (promises) {
+    if (!isArray(promises)) {
+
+        throw new TypeError('parameters passed into all should be array type');
+
+    }
+
+    return new Promise(function (resolve, reject) {
+
+        var promise;
+
+        for (var i = 0; i < promises.length; i++) {
+
+            promise = promises[i];
+
+            if (promise && isFunction(promise.then)) {
+
+                promise.then(resolve, reject);
+
+            }
+            else {
+                resolve(promise);
+            }
+        }
+    })
+}
+
+function isFunction(obj) {
+
+    return typeof obj === "function";
+}
+
+function isObjectOrFunction(obj) {
+
+    return isFunction(obj) || (typeof obj === "object" && obj !== null);
+
+}
+
+function isArray(obj) {
+
+    if ("isArray" in Array) {
+
+        return Array.isArray(obj);
+
+    }
+
+    else {
+
+        return Object.prototype.toString.call(obj) === "[object Array]";
+
+    }
+}
+
+
+if (typeof module != 'undefined' && module.exports) {
+
     module.exports = Promise;
+
 } else {
+
     window.Promise = Promise;
+
 }
 
 
