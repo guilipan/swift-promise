@@ -84,6 +84,28 @@ promise.then(function fn1(val){
 });
     
 ```
+
+### finally实例方法
+
+无论promise兑现还是拒绝,都会执行,使用场景如某些ajax请求的loading界面最终会结束
+
+```
+var promise = new Promise(function (resolve, reject) {
+        setTimeout(function(){
+            resolve(100);
+        },2000)
+
+    })
+
+promise.then(function fn1(val){
+    return val+500;
+})
+.finally(function(result){ //result可能是履行的值或者抛出的异常
+    //TODO
+})
+    
+```
+
 ### ES6中静态方法
 
 #### Promise.resolve
