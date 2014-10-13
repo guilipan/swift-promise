@@ -127,6 +127,42 @@ describe("ES6 Promises 静态方法测试", function () {
             });
         })
     })
+
+    describe("finally方法",function(){
+        it("如果promise兑现最终会执行finally的方法",function(done){
+            var promise1 = new Promise(function(resolve, reject){
+                setTimeout(function(){
+                    resolve("promise 1");
+                }, 200);
+            });
+
+            promise1.then(function(val){
+                return val;
+            })
+            .finally(function(result){
+                expect(result).to.equal("promise 1");
+                done();
+            })
+        })
+
+        it("如果promise出现异常仍然执行finally的回调",function(done){
+            var promise1 = new Promise(function(resolve, reject){
+                setTimeout(function(){
+                    resolve("promise 1");
+                }, 200);
+            });
+
+            promise1.then(function(){
+                throw new Error("error happend");
+            })
+            .finally(function(e){
+                    expect(e).to.an.instanceOf(Error)
+                        .and.to.have.property("message","error happend");
+
+                    done();
+            })
+        })
+    })
 });
 
 

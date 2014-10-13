@@ -231,10 +231,18 @@ Promise.prototype = {
 
         return promise; //2.2.7
     },
-    "catch": function (onRejection) {
+    "catch": function (onRejection) {//ie9之前的版本不支持catch关键字为属性名
 
         return this.then(null, onRejection);
 
+    },
+    "finally":function(fn){//ie9之前的版本不支持finally关键字为属性名
+
+        return this.then(function(value){
+            fn(value);
+        },function(reason){
+            fn(reason);
+        })
     }
 }
 
