@@ -342,7 +342,7 @@ Promise.race = function (promises) {
 
 function isFunction(obj) {
 
-    return typeof obj === "function";
+     return !!(obj && obj.constructor && obj.call && obj.apply);
 }
 
 function isObjectOrFunction(obj) {
