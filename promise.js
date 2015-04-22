@@ -1,380 +1,395 @@
-"use strict";
+;
+(function (root, factory) {
 
-//定义promise状态
-var State = {
-    PENDING: 0,
-    FULFILLED: 1,
-    REJECTED: 2
-};
+	"use strict";
 
-//Promise的构造函数
-function Promise(resolver) {
+	if (typeof define === 'function' && (define.amd || define.cmd)) {
+		// AMD or CMD Register as an anonymous module.
+		define(factory);
+	}
+	else if (typeof module != 'undefined' && module.exports) {
+		//nodejs support
+		module.exports = factory();
+	}
+	else {
+		// Browser globals
+		root.Promise = factory();
+	}
+}(this, function () {
 
-    if (typeof resolver !== "function") {
+	var Promise;
 
-        throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
+	//Promise的构造函数
+	if (!"Promise" in this) {
+		Promise = this["Promise"]
+	}
+	else {
+		//定义promise状态
+		var State = {
+			PENDING: 0,
+			FULFILLED: 1,
+			REJECTED: 2
+		};
 
-    }
+		Promise = function (resolver) {
 
-    if (!(this instanceof Promise)) {
+			if (!isFunction(resolver)) {
 
-        throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");
+				throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
 
-    }
+			}
 
-    this._state = State.PENDING;//默认初始状态为pending
+			if (!(this instanceof Promise)) {
 
-    this._value;//promise的值
+				throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");
 
-    this._subscribers = [];//用于存储then方法的回调的函数队列
+			}
 
-    invokeResolver(resolver, this);//进行兑现承诺的行为
-}
+			this._state = State.PENDING;//默认初始状态为pending
 
-function invokeResolver(resolver, promise) {
+			this._value;//promise的值
 
-    function resolvePromise(value) {
+			this._subscribers = [];//用于存储then方法的回调的函数队列
 
-        resolve(promise, value);
+			invokeResolver(resolver, this);//进行兑现承诺的行为
+		}
 
-    }
+		function invokeResolver(resolver, promise) {
 
-    function rejectPromise(reason) {
+			function resolvePromise(value) {
 
-        reject(promise, reason);
+				resolve(promise, value);
 
-    }
+			}
 
-    try {
+			function rejectPromise(reason) {
 
-        resolver(resolvePromise, rejectPromise);
+				reject(promise, reason);
 
-    }
-    catch (e) {
+			}
 
-        rejectPromise(e);
+			try {
 
-    }
-}
+				resolver(resolvePromise, rejectPromise);
 
-//异步调用订阅过的回调
-function invokeCallback(promise) {
+			}
+			catch (e) {
 
-    if (promise._state === State.PENDING) {
+				rejectPromise(e);
 
-        return;
+			}
+		}
 
-    }
+		//异步调用订阅过的回调
+		function invokeCallback(promise) {
 
-    async(function () {//2.2.4
+			if (promise._state === State.PENDING) {
 
-        while (promise._subscribers.length) {
-            var obj = promise._subscribers.shift();//2.2.6
-            try {
-                //先把当前promise的值作为参数传递给fulfillPromise,然后后面根据返回的value值来作为兑现thenPromise的参数,这里是保证调用顺序的基础
-                var value = (promise._state === State.FULFILLED ?
-                    (obj.fulfillPromise || function (x) {
-                        return x;//2.2.7.3
-                    }) :
-                    (obj.rejectPromise || function (x) {
-                        throw x;//2.2.7.4
-                    }))
-                (promise._value);//2.2.2，2.2.3
+				return;
 
-            } catch (e) {
+			}
 
-                reject(obj.thenPromise, e);//2.2.7.2
+			async(function () {//2.2.4
 
-                continue;
-            }
+				while (promise._subscribers.length) {
+					var obj = promise._subscribers.shift();//2.2.6
+					try {
+						//先把当前promise的值作为参数传递给fulfillPromise,然后后面根据返回的value值来作为兑现thenPromise的参数,这里是保证调用顺序的基础
+						var value = (promise._state === State.FULFILLED ?
+							(obj.fulfillPromise || function (x) {
+								return x;//2.2.7.3
+							}) :
+							(obj.rejectPromise || function (x) {
+								throw x;//2.2.7.4
+							}))
+						(promise._value);//2.2.2，2.2.3
 
-            resolve(obj.thenPromise, value);//2.2.7.1
+					} catch (e) {
 
-        }
+						reject(obj.thenPromise, e);//2.2.7.2
 
-    })
+						continue;
+					}
 
-}
+					resolve(obj.thenPromise, value);//2.2.7.1
 
-//todo 提供更好的异步调用方式,区分nodejs和浏览器
-function async(fn) {//3.1
+				}
 
-    setTimeout(fn, 0);
+			})
 
-}
+		}
 
-//[[Resolve]](promise, x),这里参数用x,是为了让看代码的人能对照规范不会混淆
-function resolve(promise, x) {
+		//todo 提供更好的异步调用方式,区分nodejs和浏览器
+		function async(fn) {//3.1
 
-    if (promise === x) {//2.3.1
+			setTimeout(fn, 0);
 
-        reject(promise, new TypeError("it cant't fulfill promise equals value condition"));
+		}
 
-    }
+		//[[Resolve]](promise, x),这里参数用x,是为了让看代码的人能对照规范不会混淆
+		function resolve(promise, x) {
 
-    else if (x && x.constructor === Promise) {//2.3.2
+			if (promise === x) {//2.3.1
 
-        if (x._state === State.PENDING) {//2.3.2.1
+				reject(promise, new TypeError("it cant't fulfill promise equals value condition"));
 
-            x.then(function (val) {
+			}
 
-                resolve(promise, val)
+			else if (x && x.constructor === Promise) {//2.3.2
 
-            }, function (reason) {
+				if (x._state === State.PENDING) {//2.3.2.1
 
-                reject(promise, reason);
+					x.then(function (val) {
 
-            })
-        }
-        else if (x._state === State.FULFILLED) {//2.3.2.2
+						resolve(promise, val)
 
-            fulfill(promise, x._value);
+					}, function (reason) {
 
-        }
-        else if (x._state === State.REJECTED) {//2.3.2.3
+						reject(promise, reason);
 
-            reject(promise, x._value);
+					})
+				}
+				else if (x._state === State.FULFILLED) {//2.3.2.2
 
-        }
-    }
-    else if (isObjectOrFunction(x)) {
+					fulfill(promise, x._value);
 
-        var isCalled = false;//2.3.3.3.3
+				}
+				else if (x._state === State.REJECTED) {//2.3.2.3
 
-        try {
+					reject(promise, x._value);
 
-            var then = x.then;//2.3.3.1
+				}
+			}
+			else if (isObjectOrFunction(x)) {
 
-            if (typeof then == "function") {//2.3.3.3
+				var isCalled = false;//2.3.3.3.3
 
-                then.call(x, function (val) {
+				try {
 
-                    isCalled || resolve(promise, val);//2.3.3.3.1
+					var then = x.then;//2.3.3.1
 
-                    isCalled = true;
+					if (typeof then == "function") {//2.3.3.3
 
-                }, function (reason) {
+						then.call(x, function (val) {
 
-                    isCalled || reject(promise, reason);//2.3.3.3.2
+							isCalled || resolve(promise, val);//2.3.3.3.1
 
-                    isCalled = true;
-                })
-            }
+							isCalled = true;
 
-            else {
+						}, function (reason) {
 
-                fulfill(promise, x);//2.3.3.4
+							isCalled || reject(promise, reason);//2.3.3.3.2
 
-            }
+							isCalled = true;
+						})
+					}
 
-        } catch (e) {
+					else {
 
-            isCalled || reject(promise, e);//2.3.3.2 ,2.3.3.3.4
+						fulfill(promise, x);//2.3.3.4
 
-        }
-    }
-    else {
-        fulfill(promise, x);//2.3.4
-    }
-}
+					}
 
-function fulfill(promise, value) {
+				} catch (e) {
 
-    if (promise._state !== State.PENDING) {
+					isCalled || reject(promise, e);//2.3.3.2 ,2.3.3.3.4
 
-        return;
-    }
+				}
+			}
+			else {
+				fulfill(promise, x);//2.3.4
+			}
+		}
 
-    promise._state = State.FULFILLED;
+		function fulfill(promise, value) {
 
-    promise._value = value;
+			if (promise._state !== State.PENDING) {
 
-    invokeCallback(promise);
-}
+				return;
+			}
 
-function reject(promise, reason) {
+			promise._state = State.FULFILLED;
 
-    if (promise._state !== State.PENDING) {
+			promise._value = value;
 
-        return;
+			invokeCallback(promise);
+		}
 
-    }
+		function reject(promise, reason) {
 
-    promise._state = State.REJECTED;
+			if (promise._state !== State.PENDING) {
 
-    promise._value = reason;
+				return;
 
-    invokeCallback(promise);
-}
+			}
 
-Promise.prototype = {
+			promise._state = State.REJECTED;
 
-    constructor: Promise,
+			promise._value = reason;
 
-    then: function (onFulfilled, onRejected) {
+			invokeCallback(promise);
+		}
 
-        var self = this;
+		Promise.prototype = {
 
-        var promise = new Promise(function () {
-        });
+			constructor: Promise,
 
-        self._subscribers.push({//2.2.6
+			then: function (onFulfilled, onRejected) {
 
-            fulfillPromise: typeof onFulfilled == "function" ? onFulfilled : null,//2.2.1，2.2.5
+				var self = this;
 
-            rejectPromise: typeof onRejected == "function" ? onRejected : null,//2.2.1，2.2.5
+				var promise = new Promise(function () {
+				});
 
-            thenPromise: promise
-        });
+				self._subscribers.push({//2.2.6
 
-        invokeCallback(self);
+					fulfillPromise: typeof onFulfilled == "function" ? onFulfilled : null,//2.2.1，2.2.5
 
-        return promise; //2.2.7
-    },
-    "catch": function (onRejection) {//ie9之前的版本不支持catch关键字为属性名
+					rejectPromise: typeof onRejected == "function" ? onRejected : null,//2.2.1，2.2.5
 
-        return this.then(null, onRejection);
+					thenPromise: promise
+				});
 
-    },
-    "finally":function(fn){//ie9之前的版本不支持finally关键字为属性名
+				invokeCallback(self);
 
-        return this.then(function(value){
-            fn(value);
-        },function(reason){
-            fn(reason);
-        })
-    }
-}
+				return promise; //2.2.7
+			},
+			"catch": function (onRejection) {//ie9之前的版本不支持catch关键字为属性名
 
-//以下静态方法为ES6 Promise新增部分
-Promise.resolve = function (value) {
+				return this.then(null, onRejection);
 
-    //ES6:如果value是有then方法的promise,直接返回
-    if (value !== null && isFunction(value.then)) {
+			},
+			"finally": function (fn) {//ie9之前的版本不支持finally关键字为属性名
 
-        return value;
-    }
+				return this.then(function (value) {
+					fn(value);
+				}, function (reason) {
+					fn(reason);
+				})
+			}
+		}
 
-    return new Promise(function (resolve, reject) {
+		//以下静态方法为ES6 Promise新增部分
+		Promise.resolve = function (value) {
 
-        resolve(value);
+			//ES6:如果value是有then方法的promise,直接返回
+			if (value !== null && isFunction(value.then)) {
 
-    })
-}
+				return value;
+			}
 
-Promise.reject = function (reason) {
+			return new Promise(function (resolve, reject) {
 
-    return new Promise(function (resolve, reject) {
+				resolve(value);
 
-        reject(reason);
+			})
+		}
 
-    })
-}
+		Promise.reject = function (reason) {
 
-Promise.all = function (promises) {
+			return new Promise(function (resolve, reject) {
 
-    if (!isArray(promises)) {
+				reject(reason);
 
-        throw new TypeError('parameters passed into all should be array type');
+			})
+		}
 
-    }
+		Promise.all = function (promises) {
 
-    return new Promise(function (resolve, reject) {
-        var results = [],
-            promise,
-            remaining = promises.length;
+			if (!isArray(promises)) {
 
-        function thenResolve(index) {
-            return function (value) {
-                resolveAll(index, value);
-            }
-        }
+				throw new TypeError('parameters passed into all should be array type');
 
-        function resolveAll(index, value) {
-            results[index] = value;
-            if (--remaining == 0) {
-                resolve(results);
-            }
-        }
+			}
 
-        for (var i = 0; i < remaining; i++) {
+			return new Promise(function (resolve, reject) {
+				var results = [],
+					promise,
+					remaining = promises.length;
 
-            promise = promises[i];
+				function thenResolve(index) {
+					return function (value) {
+						resolveAll(index, value);
+					}
+				}
 
-            if (promise && isFunction(promise.then)) {
+				function resolveAll(index, value) {
+					results[index] = value;
+					if (--remaining == 0) {
+						resolve(results);
+					}
+				}
 
-                promise.then(thenResolve(i), reject);
+				for (var i = 0; i < remaining; i++) {
 
-            }
-            else {
-                resolveAll(i, promise);
-            }
-        }
-    })
-}
+					promise = promises[i];
 
-Promise.race = function (promises) {
-    if (!isArray(promises)) {
+					if (promise && isFunction(promise.then)) {
 
-        throw new TypeError('parameters passed into all should be array type');
+						promise.then(thenResolve(i), reject);
 
-    }
+					}
+					else {
+						resolveAll(i, promise);
+					}
+				}
+			})
+		}
 
-    return new Promise(function (resolve, reject) {
+		Promise.race = function (promises) {
+			if (!isArray(promises)) {
 
-        var promise;
+				throw new TypeError('parameters passed into all should be array type');
 
-        for (var i = 0; i < promises.length; i++) {
+			}
 
-            promise = promises[i];
+			return new Promise(function (resolve, reject) {
 
-            if (promise && isFunction(promise.then)) {
+				var promise;
 
-                promise.then(resolve, reject);
+				for (var i = 0; i < promises.length; i++) {
 
-            }
-            else {
-                resolve(promise);
-            }
-        }
-    })
-}
+					promise = promises[i];
 
-function isFunction(obj) {
+					if (promise && isFunction(promise.then)) {
 
-     return !!(obj && obj.constructor && obj.call && obj.apply);
-}
+						promise.then(resolve, reject);
 
-function isObjectOrFunction(obj) {
+					}
+					else {
+						resolve(promise);
+					}
+				}
+			})
+		}
 
-    return isFunction(obj) || (typeof obj === "object" && obj !== null);
+		function isFunction(obj) {
 
-}
+			return !!(obj && obj.constructor && obj.call && obj.apply);
+		}
 
-function isArray(obj) {
+		function isObjectOrFunction(obj) {
 
-    if ("isArray" in Array) {
+			return isFunction(obj) || (typeof obj === "object" && obj !== null);
 
-        return Array.isArray(obj);
+		}
 
-    }
+		function isArray(obj) {
 
-    else {
+			if ("isArray" in Array) {
 
-        return Object.prototype.toString.call(obj) === "[object Array]";
+				return Array.isArray(obj);
 
-    }
-}
+			}
 
+			else {
 
-if (typeof module != 'undefined' && module.exports) {
+				return Object.prototype.toString.call(obj) === "[object Array]";
 
-    module.exports = Promise;
+			}
+		}
+	}
 
-} else {
 
-    window.Promise = Promise;
-
-}
-
-
+	return Promise
+}));
